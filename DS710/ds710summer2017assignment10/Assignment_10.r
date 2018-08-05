@@ -1,0 +1,594 @@
+# Author: Brian Pankau
+# Class: DS710 Summer 2017
+# Assignment: R 10
+
+
+# 1. In this problem, you will work with the “cleaned” version of the US News and World Report data on colleges and universities, 
+#    which you created in Homework 9.  
+
+# a. Read the data into R and attach it.  
+#    Use length and which to determine how many schools have a per-student instructional expenditure higher than their out-of-state tuition.  
+#    Use length and which to determine how many schools have a per-student instructional expenditure higher than their out-of-state tuition.  
+#    Then use control flow to answer the same question.  (Check that the two methods give the same answer!)
+
+# ---- FUNCTIONS ----------------------------------------------------------------------------------------------
+
+query_1a_1 <- function(df){
+  # count the number of rows where Instructional.expenditure.per.student > Out.of.state.tuition
+  row1 <- dim(df[c(df[[2]] > df[[1]]), c("Out.of.state.tuition", "Instructional.expenditure.per.student")])[1]
+  
+  return(row1)
+}
+
+# use control flow
+query_1a_2 <- function(df){
+  # count the number of rows where Instructional.expenditure.per.student > Out.of.state.tuition
+  row2 = 0
+  for(i in 1:nrow(df2)) {
+    if(df$Instructional.expenditure.per.student[i] > df$Out.of.state.tuition[i]){
+	  row2 = row2 + 1
+	}
+  }
+  return(row2)
+}
+
+# ---- MAIN ---------------------------------------------------------------------------------------------------
+
+# read the data file
+setwd ("c:/Temp10")
+f = read.csv(file="Assignment_9_r.csv", header=TRUE, sep=",")
+df0 <- data.frame(f)
+
+# create a subset for the query
+df1 <- data.frame(df0["Out.of.state.tuition"], df0["Instructional.expenditure.per.student"])
+
+# filter out Na values
+df2 <- subset(
+  df1,
+  !is.na(Out.of.state.tuition) &  !is.na(Instructional.expenditure.per.student),
+  c(Out.of.state.tuition, Instructional.expenditure.per.student)
+)
+
+# Run queries
+message(sprintf("query_1a_1 = %d", query_1a_1(df2)))  # run query_1_1
+message(sprintf("query_1a_2 = %d", query_1a_2(df2)))  # run query_1_2
+
+'''
+RESULTS:
+>> message(sprintf("query_1a_1 = %d", query_1a_1(df2)))  # run query_1_1
+query_1a_1 = 457
+> message(sprintf("query_1a_2 = %d", query_1a_2(df2)))  # run query_1_2
+query_1a_2 = 457
+>
+'''
+
+
+# ------------------------------------------------------------------------
+# b. Use system.time to compare the running times of the two methods you wrote in part a.  
+#    Iterate each method enough times that you can see a difference in the running times.  
+#    Report the user time + system time for each method.  
+#    Which is more efficient?
+
+system.time(a <- for(i in 1:1000){query_1a_1(df2)})    # run query_1_1
+system.time(a <- for(i in 1:1000){query_1a_2(df2)})    # run query_1_2
+
+'''
+RESULTS:
+> system.time(a <- for(i in 1:1000){query_1a_1(df2)})    # run query_1_1
+   user  system elapsed 
+   0.11    0.00    0.11 
+> system.time(a <- for(i in 1:1000){query_1a_2(df2)})    # run query_1_2
+   user  system elapsed 
+  19.13    0.03   19.12 
+>
+
+Method 1a is more efficient.
+'''
+
+# ------------------------------------------------------------------------
+# c. Consider three different methods of finding the mean of each numeric column of the data:
+#    i.   Using apply() and the built-in function mean()
+#    ii.  Using apply() and a function you write, called mymean(), 
+#         which takes the sum of all of the non-missing values and divides by the number of non-missing values, 
+#         without using the built-in function mean().
+#    iii. Using a for() loop to iterate over the numeric columns, 
+#         and a for() loop inside it to iterate over the values within that column, 
+#         without using the built-in functions mean() or sum().
+#    Which do you expect to be most efficient?  
+#    Explain your answer in 1-3 sentences.
+
+'''
+RESPONSE:
+I would expect that the first method (i) would be the most efficient because by using apply() we are employing
+vectorization to aggregate the values on which to average. Furthermore, the built-in function mean() is most 
+likely written in the c language and so will be faster than a natively built function in the r language in the 
+second method (ii). Using a for loop in the third method (iii) would be the least efficient because of the lack 
+of vectorization and the updating of the accumulated value and element count number which would be used to 
+calculate the mean.
+'''
+
+# ------------------------------------------------------------------------
+# d. Write functions for each of the 3 methods in part c.
+#    Apply them to the US News and World Report data and check that all 3 methods give the same answers.
+
+# method (i)
+apply(df2, 2, function(x) c(mean(x)))
+
+'''
+RESULTS:
+> apply(df2, 2, function(x) c(mean(x)))
+                 Out.of.state.tuition Instructional.expenditure.per.student 
+                             9350.416                              8890.712 
+>
+'''
+
+# method(ii)
+mymean <- function(x) {
+  the_mean <- message(sum(x)/length(x))
+  return(the_mean)
+}
+apply(df2, 2, function(x) c(mymean(x)))
+
+'''
+RESULTS:
+> apply(df2, 2, function(x) c(mymean(x)))
+9350.41639871383
+8890.71221864952
+NULL
+>>
+# Not sure why the NULL is showing up?
+'''
+
+# method (iii)
+calculate_mean <- function(x) {
+  for (icol in 1:ncol(x)) {
+    calculated_mean_sum = 0
+    for (irow in 1:nrow(x)) {
+      calculated_mean_sum = calculated_mean_sum + x[irow, icol]
+     }
+    message(calculated_mean_sum / nrow(x))
+  }
+}
+calculate_mean(df2)  
+
+'''
+RESULTS:
+> calculate_mean(df2)  
+9350.41639871383
+8890.71221864952
+>
+'''
+
+# ------------------------------------------------------------------------
+# e. Use microbenchmark to compare the median running time of the methods in part c.  
+#    Write 1-3 sentences describing which method is most efficient.  
+#    It’s OK if the result doesn’t match your prediction in part c, as long as your prediction was well-justified.  
+#    Different people may get different results, depending on details of your code.
+#    If you get the warning message, “Could not measure a positive execution time,” 
+#    double-check that you included parentheses at the end of each function call.
+
+library(microbenchmark)
+
+microbenchmark(
+  apply(df2, 2, function(x) c(mean(x)  )),
+  apply(df2, 2, function(x) c(mymean(x))),
+  calculate_mean(df2)  
+)
+
+'''
+RESULTS:
+> microbenchmark(
++   apply(df2, 2, function(x) c(mean(x)  )),
++   apply(df2, 2, function(x) c(mymean(x))),
++   calculate_mean(df2)  
++ )
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+9350.41639871383
+8890.71221864952
+Unit: microseconds
+                                    expr       min         lq       mean     median         uq       max neval
+   apply(df2, 2, function(x) c(mean(x)))   488.353   511.8615   591.4641   535.7655   592.6615  3639.335   100
+ apply(df2, 2, function(x) c(mymean(x)))   754.260   791.5980   873.0375   837.2330   889.3875  2608.500   100
+                     calculate_mean(df2) 35662.400 36783.7150 37850.0939 37423.1960 38177.4560 69816.674   100
+> 
+The method apply(df2, 2, function(x) c(mean(x)  )) is the most efficient because it is using vectorize operations to 
+itterate over each column in the data file and then uses mean() function which is implemented using the c language.
+
+'''
